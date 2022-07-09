@@ -8,22 +8,22 @@ console.clear();
 DEBUG_MODE = true
 
 DATA_AREAS_LOC = { -- INCLUSIVE ARRAYS
-    {0x1009, 0x1030, "battle"}, -- in-battle pokemon data
-    {0x1163, 0x116A, "pokemon"}, -- pokemon party list
-    {0x116B, 0x1196, "pokemon"}, -- pokemon 1
-    {0x1197, 0x11C2, "pokemon"}, -- pokemon 2
-    {0x11C3, 0x11EE, "pokemon"}, -- pokemon 3
-    {0x11EF, 0x121A, "pokemon"}, -- pokemon 4
-    {0x121B, 0x1246, "pokemon"}, -- pokemon 5
-    {0x1247, 0x1272, "pokemon"}, -- pokemon 6
-    {0x1273, 0x12B4, "pokemon"}, -- trainer name per pokemon
-    {0x12B5, 0x12F6, "pokemon"}, -- nickname per pokemon
-    {0x131D, 0x1346, "items"}, -- items (include?)
-    {0x1347, 0x1349, "money"}, -- money (include?)
-    {0x1356, 0x1356, "events"}, -- badges
-    {0x135B, 0x135B, "music"}, -- music track (use this? needs something paired with it?)
-    {0x153A, 0x159F, "items"}, -- stored items (use it?)
-    {0x15A6, 0x185F, "events"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x1009, 0x1030, "battle", "in-battle-pokemon"}, -- in-battle pokemon data
+    {0x1163, 0x116A, "pokemon", "party-list"}, -- pokemon party list
+    {0x116B, 0x1196, "pokemon", "pokemon 1"}, -- pokemon 1
+    {0x1197, 0x11C2, "pokemon", "pokemon 2"}, -- pokemon 2
+    {0x11C3, 0x11EE, "pokemon", "pokemon 3"}, -- pokemon 3
+    {0x11EF, 0x121A, "pokemon", "pokemon 4"}, -- pokemon 4
+    {0x121B, 0x1246, "pokemon", "pokemon 5"}, -- pokemon 5
+    {0x1247, 0x1272, "pokemon", "pokemon 6"}, -- pokemon 6
+    {0x1273, 0x12B4, "pokemon", "pokemon original trainers"}, -- trainer name per pokemon
+    {0x12B5, 0x12F6, "pokemon", "nicknames"}, -- nickname per pokemon
+    {0x131D, 0x1346, "items", "items"}, -- items (include?)
+    {0x1347, 0x1349, "money", "money"}, -- money (include?)
+    {0x1356, 0x1356, "events", "badges"}, -- badges
+    {0x135B, 0x135B, "music", "music track"}, -- music track (use this? needs something paired with it?)
+    {0x153A, 0x159F, "items", "stored items"}, -- stored items (use it?)
+    {0x15A6, 0x185F, "events", "mega-event-batch"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
 }
 
 math.randomseed(os.time())
@@ -70,6 +70,8 @@ function checkForLocalChanges()
             if last_val ~= now_val then
                 has_changed = true
                 area_states[whichArea][i] = now_val
+                addToDebugLog("Detected change in " .. bounds[4])
+                addToDebugLog(tostring(last_val) .. " --> " .. tostring(now_val))
             end
         end
 
@@ -117,7 +119,9 @@ function checkForNetworkChanges()
             which_data_area = -1
             for line in io.lines(file_path_to_read) do
                 if index == -1 then 
+                    addToDebugLog("Getting data area")
                     which_data_area = tonumber(line)
+                    addToDebugLog("Data area is " .. DATA_AREAS_LOC[which_data_area][4])
                 elseif which_data_area > 0 then
                     loc = DATA_AREAS_LOC[which_data_area][1] + index
                     val = tonumber(line)
@@ -126,8 +130,9 @@ function checkForNetworkChanges()
                 end
                 index = index + 1
             end
+            addToDebugLog("Finished writing")
             f:close()
-            -- addToDebugLog("Removing file at " .. file_path_to_read)
+            addToDebugLog("Removing file at " .. file_path_to_read)
             os.remove(file_path_to_read)
         end
     end
