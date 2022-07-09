@@ -70,7 +70,7 @@ function checkForLocalChanges()
             if last_val ~= now_val then
                 has_changed = true
                 area_states[whichArea][i] = now_val
-                addToDebugLog("Detected change in " .. bounds[4])
+                addToDebugLog("Detected change in " .. bounds[4] .. " ".. string.format("%X", i))
                 addToDebugLog(tostring(last_val) .. " --> " .. tostring(now_val))
             end
         end
