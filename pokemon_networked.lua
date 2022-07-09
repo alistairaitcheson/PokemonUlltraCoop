@@ -119,7 +119,7 @@ function checkForNetworkChanges()
             index = -1
             which_data_area = -1
             for line in io.lines(file_path_to_read) do
-                addToDebugLog(tostring(index) .. ": Parsing line: " .. line)
+                -- addToDebugLog(tostring(index) .. ": Parsing line: " .. line)
                 if string.len(line) > 0 then
                     if index == -1 then 
                         addToDebugLog("Getting data area")
@@ -127,15 +127,15 @@ function checkForNetworkChanges()
                         addToDebugLog("Data area is " .. DATA_AREAS_LOC[which_data_area][4])
                     elseif which_data_area > 0 then
                         loc = DATA_AREAS_LOC[which_data_area][1] + index
-                        addToDebugLog(tostring(index) .. ": writing to loc " .. tostring(loc))
+                        -- addToDebugLog(tostring(index) .. ": writing to loc " .. tostring(loc))
                         val = tonumber(line)
-                        addToDebugLog(tostring(index) .. ": writing val " .. tostring(val))
+                        -- addToDebugLog(tostring(index) .. ": writing val " .. tostring(val))
                         memory.writebyte(loc, val, "WRAM")
-                        addToDebugLog(tostring(index) .. ": wrote val " .. tostring(val))
+                        -- addToDebugLog(tostring(index) .. ": wrote val " .. tostring(val))
                         area_states[which_data_area][loc] = val  
-                        addToDebugLog(tostring(index) .. ": cached val " .. tostring(val))
+                        -- addToDebugLog(tostring(index) .. ": cached val " .. tostring(val))
                     end              
-                    addToDebugLog(tostring(index) .. ": Successfully parsed line: " .. line)
+                    -- addToDebugLog(tostring(index) .. ": Successfully parsed line: " .. line)
                 end          
                 index = index + 1
             end
