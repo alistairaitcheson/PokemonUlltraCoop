@@ -115,19 +115,28 @@ function checkForNetworkChanges()
         if file_exists(file_path_to_read) then
             addToDebugLog("Reading from file at " .. file_path_to_read)
             local f = io.open(file_path_to_read, "r")
+            addToDebugLog("Did open file at " .. file_path_to_read)
             index = -1
             which_data_area = -1
             for line in io.lines(file_path_to_read) do
-                if index == -1 then 
-                    addToDebugLog("Getting data area")
-                    which_data_area = tonumber(line)
-                    addToDebugLog("Data area is " .. DATA_AREAS_LOC[which_data_area][4])
-                elseif which_data_area > 0 then
-                    loc = DATA_AREAS_LOC[which_data_area][1] + index
-                    val = tonumber(line)
-                    memory.writebyte(loc, val, "WRAM")
-                    area_states[which_data_area][loc] = val
-                end
+                addToDebugLog(tostring(index) .. ": Parsing line: " .. line)
+                if string.len(line) > 0 then
+                    if index == -1 then 
+                        addToDebugLog("Getting data area")
+                        which_data_area = tonumber(line)
+                        addToDebugLog("Data area is " .. DATA_AREAS_LOC[which_data_area][4])
+                    elseif which_data_area > 0 then
+                        loc = DATA_AREAS_LOC[which_data_area][1] + index
+                        addToDebugLog(tostring(index) .. ": writing to loc " .. tostring(loc))
+                        val = tonumber(line)
+                        addToDebugLog(tostring(index) .. ": writing val " .. tostring(val))
+                        memory.writebyte(loc, val, "WRAM")
+                        addToDebugLog(tostring(index) .. ": wrote val " .. tostring(val))
+                        area_states[which_data_area][loc] = val  
+                        addToDebugLog(tostring(index) .. ": cached val " .. tostring(val))
+                    end              
+                    addToDebugLog(tostring(index) .. ": Successfully parsed line: " .. line)
+                end          
                 index = index + 1
             end
             addToDebugLog("Finished writing")
