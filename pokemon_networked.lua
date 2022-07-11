@@ -7,6 +7,8 @@ console.clear();
 
 DEBUG_MODE = true
 
+BANNED_MEMORY_ADDRESSES = {0x15CD}
+
 DATA_AREAS_LOC = { -- INCLUSIVE ARRAYS
     {0x1009, 0x1030, "battle", "in-battle-pokemon"}, -- in-battle pokemon data
     {0x1163, 0x116A, "pokemon", "party-list"}, -- pokemon party list
@@ -23,7 +25,12 @@ DATA_AREAS_LOC = { -- INCLUSIVE ARRAYS
     {0x1356, 0x1356, "events", "badges"}, -- badges
     {0x135B, 0x135B, "music", "music track"}, -- music track (use this? needs something paired with it?)
     {0x153A, 0x159F, "items", "stored items"}, -- stored items (use it?)
-    {0x15A6, 0x185F, "events", "mega-event-batch"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x15A6, 0x15FF, "events", "mega-event-batch-1"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x1600, 0x168F, "events", "mega-event-batch-2"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x1690, 0x16FF, "events", "mega-event-batch-3"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x1700, 0x178F, "events", "mega-event-batch-4"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x1790, 0x17FF, "events", "mega-event-batch-5"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
+    {0x1800, 0x185F, "events", "mega-event-batch-6"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
 }
 
 math.randomseed(os.time())
@@ -65,13 +72,23 @@ function checkForLocalChanges()
         has_changed = false
 
         for i = bounds[1], bounds[2], 1 do
-            last_val = area_states[whichArea][i]
-            now_val = memory.readbyte(i, "WRAM")
-            if last_val ~= now_val then
-                has_changed = true
-                area_states[whichArea][i] = now_val
-                addToDebugLog("Detected change in " .. bounds[4] .. " ".. string.format("%X", i))
-                addToDebugLog(tostring(last_val) .. " --> " .. tostring(now_val))
+            is_allowed = true
+            for j = 1, tablelength(BANNED_MEMORY_ADDRESSES) do
+                if i == BANNED_MEMORY_ADDRESSES[j] then
+                    is_allowed = false
+                end
+            end
+
+            if is_allowed then
+                last_val = area_states[whichArea][i]
+                now_val = memory.readbyte(i, "WRAM")
+                if last_val ~= now_val then
+                    has_changed = true
+                    area_states[whichArea][i] = now_val
+                    addToDebugLog("Detected change in " .. bounds[4] .. " ".. string.format("%X", i))
+                    addToDebugLog(tostring(last_val) .. " --> " .. tostring(now_val))
+                    break
+                end
             end
         end
 
