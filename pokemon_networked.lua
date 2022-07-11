@@ -82,7 +82,7 @@ function checkForLocalChanges()
     for whichArea = 1, tablelength(DATA_AREAS_LOC) do 
         bounds = DATA_AREAS_LOC[whichArea]
         has_changed = false
-        
+
         for i = bounds[1], bounds[2], 1 do
             is_allowed = true
             for j = 1, tablelength(BANNED_MEMORY_ADDRESSES) do
@@ -127,8 +127,10 @@ function sendStateOverNetwork(whichArea)
 
     output_text = "" .. tostring(whichArea)
 
+    bounds = DATA_AREAS_LOC[whichArea]
     for i = bounds[1], bounds[2], 1 do
-        output_text = output_text .. "\n" .. tostring(area_states[whichArea][i]) 
+        value = memory.readbyte(i, "WRAM")
+        output_text = output_text .. "\n" .. tostring(value) 
     end
 
     local write_file = io.open(file_path_to_write,"w")
