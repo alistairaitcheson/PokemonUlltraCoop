@@ -7,7 +7,14 @@ console.clear();
 
 DEBUG_MODE = true
 
-BANNED_MEMORY_ADDRESSES = {0x15CD}
+BUFFER_TIME_BETWEEN_SENDS = 30
+
+BANNED_MEMORY_ADDRESSES = {
+    0x15CD, -- changes when walking about room
+    0x173B, 0x173C, -- changes when going up/down stairs (room ID?)
+    0x1730, 0x1736, -- changes when going up/down stairs (fade in/out?)
+    0x15CF, 0x15D0, -- changes when going in/out of houses (room ID?)
+}
 
 DATA_AREAS_LOC = { -- INCLUSIVE ARRAYS
     {0x1009, 0x1030, "battle", "in-battle-pokemon"}, -- in-battle pokemon data
@@ -23,7 +30,8 @@ DATA_AREAS_LOC = { -- INCLUSIVE ARRAYS
     {0x131D, 0x1346, "items", "items"}, -- items (include?)
     {0x1347, 0x1349, "money", "money"}, -- money (include?)
     {0x1356, 0x1356, "events", "badges"}, -- badges
-    {0x135B, 0x135B, "music", "music track"}, -- music track (use this? needs something paired with it?)
+    {0x0022, 0x0025, "music", "audio tracks"}, -- music track (use this? needs something paired with it?)
+    {0x135B, 0x135C, "music", "music track"}, -- music track (use this? needs something paired with it?)
     {0x153A, 0x159F, "items", "stored items"}, -- stored items (use it?)
     {0x15A6, 0x15FF, "events", "mega-event-batch-1"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
     {0x1600, 0x168F, "events", "mega-event-batch-2"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
@@ -32,6 +40,8 @@ DATA_AREAS_LOC = { -- INCLUSIVE ARRAYS
     {0x1790, 0x17FF, "events", "mega-event-batch-5"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
     {0x1800, 0x185F, "events", "mega-event-batch-6"}, -- event flags (and a bunch of other stuff in the middle? Should I limit this?)
 }
+
+
 
 math.randomseed(os.time())
 
@@ -42,7 +52,7 @@ function addToDebugLog(text)
 end
 
 function tablelength(T)
-    -- addToDebugLog("tableLength: " .. tostring(T))
+    -- addToDebugLog("tablelength: " .. tostring(T))
 	local count = 0
 	for _ in pairs(T) do count = count + 1 end
 	return count
@@ -55,11 +65,13 @@ function file_exists(filePath)
 end
 
 area_states = {}
+countdown_per_state = {}
 
 for whichArea = 1, tablelength(DATA_AREAS_LOC) do 
     bounds = DATA_AREAS_LOC[whichArea]
     state = {}
     table.insert(area_states, state)
+    table.insert(countdown_per_state, 0)
 
     for i = bounds[1], bounds[2], 1 do
         state[i] = memory.readbyte(i, "WRAM")
@@ -70,7 +82,7 @@ function checkForLocalChanges()
     for whichArea = 1, tablelength(DATA_AREAS_LOC) do 
         bounds = DATA_AREAS_LOC[whichArea]
         has_changed = false
-
+        
         for i = bounds[1], bounds[2], 1 do
             is_allowed = true
             for j = 1, tablelength(BANNED_MEMORY_ADDRESSES) do
@@ -85,44 +97,46 @@ function checkForLocalChanges()
                 if last_val ~= now_val then
                     has_changed = true
                     area_states[whichArea][i] = now_val
-                    addToDebugLog("Detected change in " .. bounds[4] .. " ".. string.format("%X", i))
-                    addToDebugLog(tostring(last_val) .. " --> " .. tostring(now_val))
-                    break
+                    addToDebugLog("Detected change in " .. bounds[4] .. " ".. string.format("%X", i) .. " " .. tostring(last_val) .. " --> " .. tostring(now_val))
                 end
             end
         end
 
         if has_changed then
-            -- send this state over the network!
-            file_index = math.random(1, 100)
-            file_path_to_write = "pokemon_network_data/write_" .. tostring(file_index) .. ".txt"
-            attempts = 0
-            while attempts < 100 and file_exists(file_path_to_write) do
-                file_index = math.random(1, 100)
-                file_path_to_write = "pokemon_network_data/write_" .. tostring(file_index) .. ".txt"
-                attempts = attempts + 1
-            end
-            if attempts >= 100 then
-                -- cannot send data SHOW AN ALERT!
-                -- is the assistant switched on?
-                addToDebugLog("Out of space to send! Is the assistant switched on?")
-                return
-            end
-
-            output_text = "" .. tostring(whichArea)
-
-            for i = bounds[1], bounds[2], 1 do
-                output_text = output_text .. "\n" .. tostring(area_states[whichArea][i]) 
-            end
-
-            local write_file = io.open(file_path_to_write,"w")
-            write_file:write(output_text)
-            write_file:close()
-
-            addToDebugLog("Wrote to output " .. file_path_to_write)
-            -- addToDebugLog("Wrote data: " .. output_text)
+            countdown_per_state[whichArea] = BUFFER_TIME_BETWEEN_SENDS
         end
     end
+end
+
+function sendStateOverNetwork(whichArea) 
+    -- send this state over the network!
+    file_index = math.random(1, 100)
+    file_path_to_write = "pokemon_network_data/write_" .. tostring(file_index) .. ".txt"
+    attempts = 0
+    while attempts < 100 and file_exists(file_path_to_write) do
+        file_index = math.random(1, 100)
+        file_path_to_write = "pokemon_network_data/write_" .. tostring(file_index) .. ".txt"
+        attempts = attempts + 1
+    end
+    if attempts >= 100 then
+        -- cannot send data SHOW AN ALERT!
+        -- is the assistant switched on?
+        addToDebugLog("Out of space to send! Is the assistant switched on?")
+        return
+    end
+
+    output_text = "" .. tostring(whichArea)
+
+    for i = bounds[1], bounds[2], 1 do
+        output_text = output_text .. "\n" .. tostring(area_states[whichArea][i]) 
+    end
+
+    local write_file = io.open(file_path_to_write,"w")
+    write_file:write(output_text)
+    write_file:close()
+
+    addToDebugLog("Wrote to output " .. file_path_to_write)
+    -- addToDebugLog("Wrote data: " .. output_text)
 end
 
 function checkForNetworkChanges()
@@ -167,6 +181,17 @@ end
 while true do
     checkForNetworkChanges()
     checkForLocalChanges()
+
+    for i = 1, tablelength(countdown_per_state), 1 do
+        if countdown_per_state[i] > 0 then
+            -- addToDebugLog(tostring(i) .. ": " .. tostring(countdown_per_state[i]))
+            countdown_per_state[i] = countdown_per_state[i] - 1
+            if countdown_per_state[i] <= 0 then
+                -- addToDebugLog("SENDING " .. tostring(i) .. ": " .. tostring(countdown_per_state[i]))
+                sendStateOverNetwork(i)
+            end
+        end
+    end
 
     emu.frameadvance()
 end
